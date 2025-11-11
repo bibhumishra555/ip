@@ -355,6 +355,21 @@
       localStorage.setItem('two-ip.prevIp', v);
       setStatus(status1, 'Saved to localStorage. Previous IP updated.', true);
       updateJsonArea();
+
+      // Create a sharable link (encoded) so user can open the same prevIp on another device
+      try {
+        const payload = btoa(unescape(encodeURIComponent(JSON.stringify({ prevIp: v }))));
+        const shareLink = location.origin + location.pathname + '#shared=' + payload;
+        // Copy share link to clipboard so user can paste it on another device
+        navigator.clipboard.writeText(shareLink).then(()=>{
+          setStatus(compareStatus, 'Share link copied to clipboard — open on another device to load Previous IP', true);
+        }).catch(()=>{
+          // if clipboard fails, show link in status for manual copy
+          setStatus(compareStatus, 'Saved. Unable to copy link automatically. Use Export JSON or copy link manually: ' + shareLink, false);
+        });
+      } catch (e) {
+        console.warn('Failed to create share link', e);
+      }
     });
     el('save2').addEventListener('click', ()=>{
       localStorage.setItem('two-ip.ip2', ip2.value.trim());
@@ -472,6 +487,27 @@
       updateJsonArea();
     });
 
+    // If the page is opened with a shared link (#shared=<base64>), parse and populate prevIp
+    (function parseSharedHash(){
+      try{
+        const hash = window.location.hash || '';
+        if(!hash) return;
+        const m = hash.match(/#shared=([^&]+)/);
+        if(!m) return;
+        const payload = m[1];
+        const jsonStr = decodeURIComponent(escape(atob(payload)));
+        const obj = JSON.parse(jsonStr);
+        if(obj && obj.prevIp) {
+          prevIp.value = obj.prevIp;
+          // don't overwrite localStorage automatically, but show status
+          setStatus(compareStatus, 'Previous IP loaded from shared link', true);
+          updateJsonArea();
+        }
+      }catch(err){
+        console.warn('Failed to parse shared data from URL', err);
+      }
+    })();
+
     // Keyboard niceties: ctrl+enter to export
     window.addEventListener('keydown', (e)=>{
       if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
@@ -491,3 +527,4 @@
   </script>
 </body>
 </html>
+
