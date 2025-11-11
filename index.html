@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>2 IP List — Manager</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --muted:#9aa7bf;
+      --accent:#7dd3fc;
+      --accent-2:#60a5fa;
+      --success:#86efac;
+      --danger:#fb7185;
+      --glass: rgba(255,255,255,0.03);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(180deg,#061021 0%, #04131f 100%);
+      color:#e6eef8;
+      padding:28px;
+    }
+    .wrap{
+      width:100%;
+      max-width:920px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+      border-radius:12px;
+      box-shadow: 0 8px 30px rgba(2,6,23,0.7);
+      padding:22px;
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+    header{
+      display:flex;
+      gap:16px;
+      align-items:center;
+      margin-bottom:18px;
+    }
+    header h1{
+      margin:0;
+      font-size:20px;
+      letter-spacing:0.2px;
+    }
+    header p{
+      margin:0;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+    }
+    .card{
+      background:var(--card);
+      padding:14px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.02);
+    }
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    .ip-row{display:flex;gap:8px;align-items:center}
+    input[type="text"]{
+      width:100%;
+      padding:10px 12px;
+      background:var(--glass);
+      border:1px solid rgba(255,255,255,0.03);
+      color:inherit;
+      border-radius:8px;
+      outline:none;
+      font-size:14px;
+    }
+    .btn{
+      padding:9px 10px;
+      border-radius:8px;
+      border: none;
+      cursor:pointer;
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      color:#022;
+      font-weight:600;
+      font-size:13px;
+    }
+    .btn.ghost{
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.06);
+      color:var(--accent);
+      font-weight:600;
+    }
+    .btn.warn{ background: linear-gradient(90deg,#f59e0b,#f97316); color:#081019;}
+    .small{padding:8px 10px;font-size:13px}
+    .tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .muted{color:var(--muted);font-size:13px}
+    .status{margin-top:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);font-size:14px}
+    .ok{color:var(--success);font-weight:700}
+    .bad{color:var(--danger);font-weight:700}
+    .row{display:flex;gap:8px;align-items:center}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    textarea{width:100%;min-height:80px;padding:10px;border-radius:8px;background:transparent;border:1px dashed rgba(255,255,255,0.04);color:inherit}
+    footer{display:flex;justify-content:space-between;align-items:center;margin-top:14px;color:var(--muted);font-size:13px}
+    .hint{font-size:12px;color:var(--muted);margin-top:6px}
+    @media(max-width:780px){
+      .grid{grid-template-columns:1fr}
+    }
+    .chip{
+      padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.03);
+      background:rgba(255,255,255,0.02);
+      font-size:13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap" role="main">
+    <header>
+      <div>
+        <h1>2 IP List — manager</h1>
+        <p class="muted">Enter, validate, compare and save two IP addresses. Built for quick checks.</p>
+      </div>
+      <div style="margin-left:auto;text-align:right">
+        <div class="chip">sweet 💞 heart</div>
+      </div>
+    </header>
+    
+    <!-- Previous IP field (added) -->
+    <div class="card" style="margin-bottom:14px">
+      <label for="prevIp">Previous IP</label>
+      <div class="ip-row">
+        <input id="prevIp" type="text" placeholder="e.g. 203.0.113.5 or 2001:0db8::1" autocomplete="off" />
+        <button id="copyPrev" class="btn ghost small" title="Copy Previous IP">Copy</button>
+      </div>
+      <div class="hint">Previously used IP (optional).</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <label for="ip1">IP address 1</label>
+        <div class="ip-row">
+          <input id="ip1" type="text" placeholder="e.g. 203.0.113.5 or 2001:0db8::1" autocomplete="off" />
+          <button id="autoFill1" class="btn small" title="Auto-fill with your external IP">Auto-fill</button>
+          <button id="copy1" class="btn ghost small" title="Copy IP 1">Copy</button>
+        </div>
+        <div class="hint">Tip: Auto-fill will fetch your external public IP.</div>
+
+        <div class="controls">
+          <button id="validate1" class="btn ghost small">Validate</button>
+          <button id="save1" class="btn small">Save</button>
+          <button id="clear1" class="btn ghost small">Clear</button>
+        </div>
+
+        <div id="status1" class="status muted">No checks yet.</div>
+      </div>
+
+      <div class="card">
+        <label for="ip2">IP address 2</label>
+        <div class="ip-row">
+          <input id="ip2" type="text" placeholder="e.g. 192.0.2.10 or fe80::1" autocomplete="off" />
+          <button id="autoFill2" class="btn small" title="Auto-fill with your external IP">Auto-fill</button>
+          <button id="copy2" class="btn ghost small" title="Copy IP 2">Copy</button>
+        </div>
+        <div class="hint">&nbsp;</div>
+
+        <div class="controls">
+          <button id="validate2" class="btn ghost small">Validate</button>
+          <button id="save2" class="btn small">Save</button>
+          <button id="clear2" class="btn ghost small">Clear</button>
+        </div>
+
+        <div id="status2" class="status muted">No checks yet.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;align-items:center">
+      <div class="card" style="flex:1">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <label class="muted">IPv4 subnet prefix</label>
+          <input id="prefix" type="number" min="0" max="32" value="24" style="width:86px;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit" />
+          <button id="checkSubnet" class="btn">Check same subnet</button>
+          <button id="compareBtn" class="btn ghost">Compare (==)</button>
+          <button id="exportBtn" class="btn small">Export JSON</button>
+          <button id="importBtn" class="btn ghost small">Import JSON</button>
+          <input id="fileIn" type="file" accept="application/json" style="display:none" />
+        </div>
+
+        <div id="compareStatus" class="status muted">No comparison yet.</div>
+      </div>
+
+      <div class="card" style="flex-basis:260px">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px">Saved list</div>
+        <div style="display:flex;gap:8px">
+          <button id="loadSaved" class="btn small">Load saved</button>
+          <button id="clearSaved" class="btn ghost small">Clear saved</button>
+        </div>
+        <div class="hint">Saved lists are stored in your browser (localStorage).</div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px" class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <strong style="font-size:14px">JSON export / import</strong>
+          <div class="muted" style="margin-top:6px">Export your two IPs to JSON or import a previously exported file.</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="downloadJSON" class="btn small">Download JSON</button>
+        </div>
+      </div>
+
+      <textarea id="jsonArea" placeholder='{"ip1":"...","ip2":"..."}'></textarea>
+    </div>
+
+    <footer>
+      <div class="muted">Built for quick checks • IPv4/IPv6 validation • No external server required except Auto-fill</div>
+      <div style="display:flex;gap:8px">
+        <div class="muted">v1.0</div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // Utilities
+    function el(id){return document.getElementById(id)}
+    function setStatus(elm, text, ok){
+      elm.textContent = text;
+      elm.classList.toggle('ok', !!ok);
+      elm.classList.toggle('bad', ok === false);
+    }
+
+    // IP validation (IPv4 + IPv6)
+    // IPv4 regex strict: 0-255 each octet
+    const ipv4Regex = /^(25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)){3}$/;
+    // Basic IPv6 pattern (allows shorthand), use try/catch with URL for more robust? We'll use a reliable algorithm below.
+    const ipv6Regex = /^(([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,6}:))$/;
+
+    function isIPv4(str){
+      return ipv4Regex.test(str.trim());
+    }
+    function isIPv6(str){
+      // A conservative approach: use the browser's URL parser with bracket notation for IPv6
+      try{
+        const s = str.trim();
+        if(!s) return false;
+        // If it looks like IPv6 without square brackets, try adding them
+        const candidate = s.includes(':') && !s.includes('[') ? '[' + s + ']' : s;
+        // Can't use new URL unless we append a scheme and maybe port
+        const urlStr = 'http://' + candidate + '/';
+        const u = new URL(urlStr);
+        return u.hostname.includes(':') || ipv6Regex.test(s);
+      }catch(e){
+        return ipv6Regex.test(String(str).trim());
+      }
+    }
+
+    function validateAnyIP(s){
+      return isIPv4(s) || isIPv6(s);
+    }
+
+    // Convert IPv4 to 32-bit number
+    function ipv4ToInt(ip){
+      if(!isIPv4(ip)) return null;
+      return ip.split('.').reduce((acc, oct) => (acc<<8) + parseInt(oct,10), 0) >>> 0;
+    }
+
+    // Check same IPv4 subnet
+    function sameIpv4Subnet(a,b,prefix){
+      const ai = ipv4ToInt(a), bi = ipv4ToInt(b);
+      if(ai===null || bi===null) return null;
+      if(prefix <0) prefix = 0;
+      if(prefix>32) prefix = 32;
+      const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
+      return ((ai & mask) >>> 0) === ((bi & mask) >>> 0);
+    }
+
+  // DOM refs
+  const prevIp = el('prevIp');
+  const ip1 = el('ip1'), ip2 = el('ip2');
+  const status1 = el('status1'), status2 = el('status2');
+  const compareStatus = el('compareStatus');
+  const prefix = el('prefix');
+  const jsonArea = el('jsonArea');
+
+    // Buttons
+    el('validate1').addEventListener('click', ()=>{
+      const v = ip1.value.trim();
+      if(!v){ setStatus(status1, 'Enter an IP first.', false); return; }
+      if(isIPv4(v)){ setStatus(status1, 'Valid IPv4 address ✓', true); }
+      else if(isIPv6(v)){ setStatus(status1, 'Valid IPv6 address ✓', true); }
+      else setStatus(status1, 'Not a valid IPv4 or IPv6 address ✕', false);
+    });
+
+    el('validate2').addEventListener('click', ()=>{
+      const v = ip2.value.trim();
+      if(!v){ setStatus(status2, 'Enter an IP first.', false); return; }
+      if(isIPv4(v)){ setStatus(status2, 'Valid IPv4 address ✓', true); }
+      else if(isIPv6(v)){ setStatus(status2, 'Valid IPv6 address ✓', true); }
+      else setStatus(status2, 'Not a valid IPv4 or IPv6 address ✕', false);
+    });
+
+    // Auto-fill external IP (uses ipify)
+    async function fetchExternalIP(){
+      try{
+        const resp = await fetch('https://api.ipify.org?format=json', {cache:'no-store'});
+        if(!resp.ok) throw new Error('Network response not ok');
+        const j = await resp.json();
+        return j.ip;
+      }catch(err){
+        // fallback to another free service
+        try{
+          const r2 = await fetch('https://ifconfig.co/json', {cache:'no-store'});
+          if(r2.ok){
+            const j2 = await r2.json();
+            return j2.ip || j2.ipv4;
+          }
+        }catch(e){}
+        throw err;
+      }
+    }
+
+    el('autoFill1').addEventListener('click', async ()=>{
+      setStatus(status1, 'Fetching external IP...', null);
+      try{
+        const ip = await fetchExternalIP();
+        ip1.value = ip;
+        setStatus(status1, 'Auto-filled external IP: ' + ip, true);
+      }catch(e){
+        setStatus(status1, 'Failed to fetch external IP. Check network or CORS.', false);
+      }
+    });
+
+    el('autoFill2').addEventListener('click', async ()=>{
+      setStatus(status2, 'Fetching external IP...', null);
+      try{
+        const ip = await fetchExternalIP();
+        ip2.value = ip;
+        setStatus(status2, 'Auto-filled external IP: ' + ip, true);
+      }catch(e){
+        setStatus(status2, 'Failed to fetch external IP. Check network or CORS.', false);
+      }
+    });
+
+  // Copy buttons
+  el('copy1').addEventListener('click', ()=>{ navigator.clipboard.writeText(ip1.value || '').then(()=>setStatus(status1,'Copied to clipboard ✓',true)).catch(()=>setStatus(status1,'Copy failed',false)); });
+  el('copy2').addEventListener('click', ()=>{ navigator.clipboard.writeText(ip2.value || '').then(()=>setStatus(status2,'Copied to clipboard ✓',true)).catch(()=>setStatus(status2,'Copy failed',false)); });
+  el('copyPrev').addEventListener('click', ()=>{ navigator.clipboard.writeText(prevIp.value || '').then(()=>setStatus(compareStatus,'Previous IP copied ✓',true)).catch(()=>setStatus(compareStatus,'Copy failed',false)); });
+
+    // Save per-field to localStorage
+    el('save1').addEventListener('click', ()=>{
+      const v = ip1.value.trim();
+      localStorage.setItem('two-ip.ip1', v);
+      // Also populate Previous IP field and persist it
+      prevIp.value = v;
+      localStorage.setItem('two-ip.prevIp', v);
+      setStatus(status1, 'Saved to localStorage. Previous IP updated.', true);
+      updateJsonArea();
+    });
+    el('save2').addEventListener('click', ()=>{
+      localStorage.setItem('two-ip.ip2', ip2.value.trim());
+      setStatus(status2, 'Saved to localStorage.', true);
+    });
+    el('loadSaved').addEventListener('click', ()=>{
+      const a = localStorage.getItem('two-ip.ip1') || '';
+      const b = localStorage.getItem('two-ip.ip2') || '';
+      const p = localStorage.getItem('two-ip.prevIp') || '';
+      ip1.value = a;
+      ip2.value = b;
+      prevIp.value = p;
+      setStatus(status1, a ? 'Loaded saved' : 'No saved IP1', !!a);
+      setStatus(status2, b ? 'Loaded saved' : 'No saved IP2', !!b);
+      setStatus(compareStatus, p ? 'Loaded previous IP' : '', !!p);
+      updateJsonArea();
+    });
+    el('clearSaved').addEventListener('click', ()=>{
+      localStorage.removeItem('two-ip.ip1');
+      localStorage.removeItem('two-ip.ip2');
+      localStorage.removeItem('two-ip.prevIp');
+      setStatus(status1,'Cleared saved',true);
+      setStatus(status2,'Cleared saved',true);
+    });
+
+    el('clear1').addEventListener('click', ()=>{ ip1.value=''; setStatus(status1,'Cleared',null); updateJsonArea(); });
+    el('clear2').addEventListener('click', ()=>{ ip2.value=''; setStatus(status2,'Cleared',null); updateJsonArea(); });
+
+    // Compare equality
+    el('compareBtn').addEventListener('click', ()=>{
+      const a = ip1.value.trim(), b = ip2.value.trim();
+      if(!a || !b){ setStatus(compareStatus,'Both IPs required to compare.',false); return; }
+      if(a === b) setStatus(compareStatus, 'IPs are identical ✓', true);
+      else setStatus(compareStatus, 'IPs differ ✕', false);
+    });
+
+    // Check subnet
+    el('checkSubnet').addEventListener('click', ()=>{
+      const a = ip1.value.trim(), b = ip2.value.trim();
+      const p = parseInt(prefix.value,10);
+      if(!a || !b){ setStatus(compareStatus,'Both IPs required to check subnet.',false); return; }
+      if(!isIPv4(a) || !isIPv4(b)){ setStatus(compareStatus,'Subnet check currently supports IPv4 only.',false); return; }
+      if(Number.isNaN(p) || p<0 || p>32){ setStatus(compareStatus,'Enter prefix between 0 and 32.',false); return; }
+      const res = sameIpv4Subnet(a,b,p);
+      if(res === null) setStatus(compareStatus, 'Invalid IPv4 addresses.', false);
+      else if(res) setStatus(compareStatus, `Same IPv4 /${p} subnet ✓`, true);
+      else setStatus(compareStatus, `Different IPv4 /${p} subnets ✕`, false);
+    });
+
+    // JSON export/import
+    function updateJsonArea(){
+      const obj = { prevIp: prevIp.value.trim(), ip1: ip1.value.trim(), ip2: ip2.value.trim() };
+      jsonArea.value = JSON.stringify(obj, null, 2);
+    }
+
+    ['prevIp','ip1','ip2'].forEach(id => el(id).addEventListener('input', updateJsonArea));
+    updateJsonArea();
+
+    el('exportBtn').addEventListener('click', updateJsonArea);
+
+    el('downloadJSON').addEventListener('click', ()=>{
+      updateJsonArea();
+      const blob = new Blob([jsonArea.value], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'two-ip-list.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setStatus(compareStatus, 'JSON downloaded', true);
+    });
+
+    el('importBtn').addEventListener('click', ()=> el('fileIn').click());
+    el('fileIn').addEventListener('change', async (ev)=>{
+      const f = ev.target.files[0];
+      if(!f) return;
+      try{
+        const txt = await f.text();
+  const j = JSON.parse(txt);
+  prevIp.value = j.prevIp || '';
+  ip1.value = j.ip1 || '';
+  ip2.value = j.ip2 || '';
+        updateJsonArea();
+        setStatus(compareStatus, 'Imported JSON successfully', true);
+      }catch(e){
+        setStatus(compareStatus, 'Invalid JSON file', false);
+      } finally {
+        ev.target.value = '';
+      }
+    });
+
+    // Direct paste of JSON into textarea imports
+    jsonArea.addEventListener('blur', ()=>{
+      try{
+  const j = JSON.parse(jsonArea.value || '{}');
+  prevIp.value = j.prevIp || prevIp.value;
+  ip1.value = j.ip1 || ip1.value;
+  ip2.value = j.ip2 || ip2.value;
+        setStatus(compareStatus, 'JSON parsed into fields', true);
+      }catch(e){
+        setStatus(compareStatus, 'Invalid JSON text', false);
+      }
+    });
+
+    // Helpers: update when loaded
+    window.addEventListener('load', ()=>{
+      // Load saved into fields if present
+      const s1 = localStorage.getItem('two-ip.ip1') || '';
+      const s2 = localStorage.getItem('two-ip.ip2') || '';
+      const sp = localStorage.getItem('two-ip.prevIp') || '';
+      if(s1) ip1.value = s1;
+      if(s2) ip2.value = s2;
+      if(sp) prevIp.value = sp;
+      updateJsonArea();
+    });
+
+    // Keyboard niceties: ctrl+enter to export
+    window.addEventListener('keydown', (e)=>{
+      if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+        updateJsonArea();
+        setStatus(compareStatus, 'JSON updated (Ctrl/Cmd+Enter)', true);
+      }
+    });
+
+    // Accessibility: simple focus ring
+    document.addEventListener('focusin', (ev)=>{
+      if(ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA' || ev.target.tagName === 'BUTTON'){
+        ev.target.style.boxShadow = '0 0 0 3px rgba(96,165,250,0.12)';
+      }
+    });
+    document.addEventListener('focusout', (ev)=>{ ev.target.style.boxShadow = 'none'; });
+
+  </script>
+</body>
+</html>
