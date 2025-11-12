@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>IP Saver - Firebase</title>
+  <title>IP saver - Firebase</title>
   <style>
     body{font-family:system-ui,Arial;max-width:720px;margin:30px auto;padding:10px}
     label{display:block;margin-top:12px}
@@ -13,97 +13,169 @@
   </style>
 </head>
 <body>
-  <h2>IP Auto-Save Demo</h2>
+  <h2>IP auto-save demo</h2>
 
   <label>Current IP
     <input id="current-ip" readonly placeholder="Detecting...">
   </label>
 
-  <label>Previous IP (from Firebase)
+  <label>Previous IP (from server)
     <input id="previous-ip" readonly placeholder="---">
   </label>
 
   <div class="note">
-    Auto-detects public IP using <b>api.ipify.org</b> and saves it to <b>Firestore</b>.<br>
-    Uses <b>Anonymous Auth</b> for safe writes.
+    Auto-detects public IP using api.ipify.org and saves latest value to Firestore.<br>
+    Uses anonymous Firebase auth so only authenticated clients may write.
   </div>
 
   <script type="module">
+    // Import Firebase SDK modules (v12.5.0)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
-    // 🔹 Your Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyBSl7Hdc20zarK_KHFNgmSrMCiDqMF6oiI",
-      authDomain: "ipv4-checker.firebaseapp.com",
-      projectId: "ipv4-checker",
-      storageBucket: "ipv4-checker.firebasestorage.app",
-      messagingSenderId: "568806408801",
-      appId: "1:568806408801:web:d0de4b2c0e91f8cb27e020",
-      measurementId: "G-MEGYZCN3WS"
-    };
+    console.log('🔥 Firebase SDK modules loaded successfully');
 
-    // 🔹 Initialize Firebase
+    // --- Replace with your Firebase config from Console ---
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com", 
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    // ----------------------------------------------------
+
+    // Initialize Firebase
+    console.log('🚀 Initializing Firebase...');
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
+    console.log('✅ Firebase initialized successfully');
 
     const currentIpInput = document.getElementById('current-ip');
     const previousIpInput = document.getElementById('previous-ip');
 
-    // Fetch public IP
+    // Fetch user's public IP address
     async function fetchMyIP() {
+      console.log('🌐 Fetching public IP address...');
       try {
-        const res = await fetch('https://api.ipify.org?format=json');
-        const data = await res.json();
+        const response = await fetch('https://api.ipify.org?format=json');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log('✅ Successfully fetched IP:', data.ip);
         return data.ip;
-      } catch (err) {
-        console.error("❌ Failed to fetch IP:", err);
+      } catch (error) {
+        console.error('❌ Failed to fetch IP address:', error);
         return null;
       }
     }
 
-    // Read latest IP from Firestore
+    // Read latest IP from Firestore (document path: settings/latestIP)
     async function readLatestIP() {
-      const ref = doc(db, 'settings', 'latestIP');
-      const snap = await getDoc(ref);
-      return snap.exists() ? snap.data().ip : null;
-    }
-
-    // Save IP to Firestore
-    async function saveIPToFirestore(ip) {
-      const ref = doc(db, 'settings', 'latestIP');
-      await setDoc(ref, { ip, updatedAt: serverTimestamp() });
-      console.log("✅ IP saved:", ip);
-    }
-
-    // 🔹 Main logic
-    window.addEventListener('DOMContentLoaded', async () => {
-      // 1. Show previously saved IP
-      const prev = await readLatestIP();
-      if (prev) previousIpInput.value = prev;
-
-      // 2. Anonymous Auth login
+      console.log('📖 Reading previous IP from Firestore...');
       try {
-        await signInAnonymously(auth);
-        console.log("✅ Signed in anonymously");
-      } catch (e) {
-        console.error("❌ Anonymous sign-in failed:", e);
+        const docRef = doc(db, 'settings', 'latestIP');
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const previousIP = data.ip || null;
+          console.log('✅ Successfully read previous IP:', previousIP);
+          return previousIP;
+        } else {
+          console.log('ℹ️ No previous IP found in Firestore');
+          return null;
+        }
+      } catch (error) {
+        console.error('❌ Failed to read previous IP from Firestore:', error);
+        return null;
       }
+    }
 
-      // 3. Fetch current IP and save to Firestore
-      const ip = await fetchMyIP();
-      if (ip) {
-        currentIpInput.value = ip;
-        await saveIPToFirestore(ip);
-        // Refresh previous IP
-        const latest = await readLatestIP();
-        if (latest) previousIpInput.value = latest;
-      } else {
-        currentIpInput.value = "Could not detect IP";
+    // Save IP to Firestore (requires authentication)
+    async function saveIPToFirestore(ip) {
+      console.log('💾 Saving IP to Firestore:', ip);
+      try {
+        const docRef = doc(db, 'settings', 'latestIP');
+        await setDoc(docRef, { 
+          ip: ip, 
+          updatedAt: serverTimestamp(),
+          timestamp: new Date().toISOString()
+        });
+        console.log('✅ Successfully saved IP to Firestore');
+      } catch (error) {
+        console.error('❌ Failed to save IP to Firestore:', error);
+        throw error;
+      }
+    }
+
+    // Main application flow
+    window.addEventListener('DOMContentLoaded', async () => {
+      console.log('🔄 Page loaded, starting IP detection and sync process...');
+
+      try {
+        // Step 1: Read previous IP from Firestore first (fast UI update)
+        console.log('📋 Step 1: Reading previous IP...');
+        const previousIP = await readLatestIP();
+        if (previousIP) {
+          previousIpInput.value = previousIP;
+          console.log('✅ Step 1 complete: Previous IP displayed');
+        } else {
+          previousIpInput.value = 'No previous IP found';
+          console.log('ℹ️ Step 1 complete: No previous IP to display');
+        }
+
+        // Step 2: Enable anonymous authentication
+        console.log('🔐 Step 2: Signing in anonymously...');
+        try {
+          await signInAnonymously(auth);
+          console.log('✅ Step 2 complete: Anonymous authentication successful');
+        } catch (authError) {
+          console.error('❌ Step 2 failed: Anonymous sign-in error:', authError);
+          console.log('⚠️ Continuing without authentication - writes may fail');
+        }
+
+        // Step 3: Fetch current IP and update UI
+        console.log('🔍 Step 3: Fetching current IP...');
+        const currentIP = await fetchMyIP();
+        
+        if (currentIP) {
+          currentIpInput.value = currentIP;
+          console.log('✅ Step 3 complete: Current IP displayed');
+
+          // Step 4: Auto-save current IP to Firestore
+          console.log('💾 Step 4: Auto-saving current IP...');
+          try {
+            await saveIPToFirestore(currentIP);
+            console.log('✅ Step 4 complete: Current IP saved to Firestore');
+
+            // Step 5: Refresh previous IP display (in case it changed)
+            console.log('🔄 Step 5: Refreshing previous IP display...');
+            const latestIP = await readLatestIP();
+            if (latestIP) {
+              previousIpInput.value = latestIP;
+              console.log('✅ Step 5 complete: Previous IP display updated');
+            }
+          } catch (saveError) {
+            console.error('❌ Step 4 failed: Could not save IP to Firestore:', saveError);
+          }
+        } else {
+          currentIpInput.value = 'Could not detect IP';
+          console.log('❌ Step 3 failed: Unable to detect current IP');
+        }
+
+        console.log('🎉 IP detection and sync process completed!');
+
+      } catch (error) {
+        console.error('💥 Critical error in main process:', error);
+        currentIpInput.value = 'Error occurred';
       }
     });
   </script>
 </body>
 </html>
+
